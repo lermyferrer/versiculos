@@ -51,7 +51,7 @@ watch(chapter, async () => {
   }
 })
 
-const MAX_VERSES = 2
+const MAX_VERSES = 1;
 
 function toggleVerse(v: number) {
   const i = selectedVerses.value.indexOf(v)
@@ -108,7 +108,7 @@ function closeApp() {
   window.api.closeApp()
 }
 
-const backgroundOn = ref(false)
+const backgroundOn = ref(true)
 const backgroundId = ref(BACKGROUNDS[0].id)
 
 function syncBackground() {
