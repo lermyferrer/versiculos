@@ -4,4 +4,6 @@ contextBridge.exposeInMainWorld('api', {
   sendVerse: (payload) => ipcRenderer.send('verse', payload),
   onVerse: (callback) => ipcRenderer.on('verse', (_event, payload) => callback(payload)),
   closeApp: () => ipcRenderer.send('close-app'),
+  setBackground: (payload) => ipcRenderer.send('background', payload),
+  onBackground: (callback) => ipcRenderer.on('background', (_event, payload) => callback(payload)),
 })

@@ -31,6 +31,10 @@ function createWindows() {
     y: externalDisplay.bounds.y,
     fullscreen: displays.length > 1,
     autoHideMenuBar: true,
+    frame: false,
+    transparent: true,
+    backgroundColor: '#00000000',
+    alwaysOnTop: true,
     webPreferences: { preload: path.join(__dirname, 'preload.cjs') },
   })
   loadView(displayWindow, 'display')
@@ -40,6 +44,10 @@ function createWindows() {
   })
 
   ipcMain.on('close-app', () => app.quit())
+
+  ipcMain.on('background', (_event, payload) => {
+    displayWindow?.webContents.send('background', payload)
+  })
 }
 
 app.whenReady().then(createWindows)

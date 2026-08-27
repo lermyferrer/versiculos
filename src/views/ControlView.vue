@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
-import { fetchBooks, fetchChapter, type Book, type Verse } from '../services/bolls'
+import { fetchBooks, fetchChapter, TRANSLATIONS, type Book, type Verse } from '../services/bolls'
+import { BACKGROUNDS } from '../assets/backgrounds'
 
+const translation = ref(TRANSLATIONS[0].code)
 const books = ref<Book[]>([])
 const search = ref('')
 const bookId = ref<number>()
@@ -15,12 +17,20 @@ const filteredBooks = computed(() =>
 )
 const selectedBook = computed(() => books.value.find((b) => b.bookid === bookId.value))
 
-onMounted(async () => {
+async function loadBooks() {
+  error.value = ''
   try {
-    books.value = await fetchBooks()
+    books.value = await fetchBooks(translation.value)
   } catch (e) {
     error.value = (e as Error).message
   }
+}
+
+onMounted(loadBooks)
+
+watch(translation, () => {
+  bookId.value = undefined
+  loadBooks()
 })
 
 watch(bookId, () => {
@@ -35,13 +45,13 @@ watch(chapter, async () => {
   if (!bookId.value || !chapter.value) return
   error.value = ''
   try {
-    verses.value = await fetchChapter(bookId.value, chapter.value)
+    verses.value = await fetchChapter(translation.value, bookId.value, chapter.value)
   } catch (e) {
     error.value = (e as Error).message
   }
 })
 
-const MAX_VERSES = 3
+const MAX_VERSES = 2
 
 function toggleVerse(v: number) {
   const i = selectedVerses.value.indexOf(v)
@@ -72,6 +82,8 @@ function formatRanges(nums: number[]) {
   return parts.join(',')
 }
 
+const isShowingVerse = ref(false)
+
 function show() {
   const sorted = [...selectedVerses.value].sort((a, b) => a - b)
   const chosen = sorted
@@ -80,28 +92,66 @@ function show() {
   if (!chosen.length) return
   window.api.sendVerse({
     reference: `${selectedBook.value?.name} ${chapter.value}:${formatRanges(sorted)}`,
+    version: translation.value,
     verses: chosen.map((v) => ({ number: v.verse, text: v.text.replace(/<[^>]+>/g, '') })),
   })
+  isShowingVerse.value = true
 }
 
 function hide() {
   selectedVerses.value = []
   window.api.sendVerse(null)
+  isShowingVerse.value = false
 }
 
 function closeApp() {
   window.api.closeApp()
 }
+
+const backgroundOn = ref(false)
+const backgroundId = ref(BACKGROUNDS[0].id)
+
+function syncBackground() {
+  window.api.setBackground({ visible: backgroundOn.value, backgroundId: backgroundId.value })
+}
+
+function toggleBackground() {
+  backgroundOn.value = !backgroundOn.value
+  syncBackground()
+}
+
+watch(backgroundId, syncBackground)
 </script>
 
 <template>
   <main class="min-h-screen bg-slate-900 text-white p-6 flex flex-col gap-4">
     <div class="flex justify-between items-center">
       <h1 class="text-2xl font-bold">Versículos — Control</h1>
-      <button type="button" @click="closeApp" class="bg-red-700 hover:bg-red-600 rounded px-4 py-2">Cerrar</button>
+      <div class="flex gap-3">
+        <select v-model="backgroundId" class="bg-slate-800 rounded px-3 py-2">
+          <option v-for="b in BACKGROUNDS" :key="b.id" :value="b.id">{{ b.label }}</option>
+        </select>
+        <button
+          v-if="!isShowingVerse"
+          type="button"
+          @click="toggleBackground"
+          class="rounded px-4 py-2"
+          :class="backgroundOn ? 'bg-blue-700 hover:bg-blue-600' : 'bg-slate-700 hover:bg-slate-600'"
+        >
+          Fondo: {{ backgroundOn ? 'visible' : 'oculto' }}
+        </button>
+        <span v-else class="text-sm text-slate-400 self-center">Ocultá el versículo para mostrar/ocultar el fondo</span>
+        <button type="button" @click="closeApp" class="bg-red-700 hover:bg-red-600 rounded px-4 py-2">Cerrar</button>
+      </div>
     </div>
 
     <div class="flex gap-3 items-end flex-wrap">
+      <label class="flex flex-col gap-1">
+        Versión
+        <select v-model="translation" class="bg-slate-800 rounded px-3 py-2 w-48">
+          <option v-for="t in TRANSLATIONS" :key="t.code" :value="t.code">{{ t.label }}</option>
+        </select>
+      </label>
       <label class="flex flex-col gap-1">
         Buscar libro
         <input
