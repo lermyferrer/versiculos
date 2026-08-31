@@ -45,7 +45,7 @@ onMounted(() => {
     class="relative min-h-screen text-white flex flex-col items-center p-16 gap-8 bg-cover bg-center"
     :style="{ background: showBackground ? backgroundStyle : 'transparent' }"
   >
-    <div v-if="reference" class="absolute top-28 left-88 flex items-baseline gap-6">
+    <div v-if="reference" class="absolute top-28 left-80 flex items-baseline gap-6">
       <span class="text-8xl font-semibold text-white uppercase">{{ reference }}</span>
       <span class="text-8xl font-semibold text-white">-</span>
       <span class="text-8xl font-semibold text-white">{{ version }}</span>
