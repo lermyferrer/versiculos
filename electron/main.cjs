@@ -18,7 +18,7 @@ function loadView(win, view) {
 function createWindows() {
   controlWindow = new BrowserWindow({
     width: 1000,
-    height: 700,
+    height: 850,
     webPreferences: { preload: path.join(__dirname, 'preload.cjs') },
   })
   loadView(controlWindow, 'control')

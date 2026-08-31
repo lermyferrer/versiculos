@@ -4,7 +4,7 @@ import logo from '../assets/logo.png'
 import { BACKGROUNDS } from '../assets/backgrounds'
 
 const GLOW = 'radial-gradient(ellipse 1400px 520px at 50% -80px, rgba(147,197,253,0.30), transparent 70%)'
-const ELEGANT_GRADIENT = 'linear-gradient(90deg, #12295a 0%, #101f3e 35%, #080c18 70%, #000000 100%)'
+const ELEGANT_GRADIENT = 'linear-gradient(90deg, #0c1c40 0%, #0a172f 35%, #060a14 70%, #000000 100%)'
 
 const reference = ref('')
 const version = ref('')
@@ -45,13 +45,14 @@ onMounted(() => {
     class="relative min-h-screen text-white flex flex-col items-center p-16 gap-8 bg-cover bg-center"
     :style="{ background: showBackground ? backgroundStyle : 'transparent' }"
   >
-    <div v-if="reference" class="absolute top-28 left-1/2 -translate-x-1/2 flex items-baseline gap-3">
-      <span class="text-7xl font-semibold text-slate-400">{{ reference }}</span>
-      <span class="text-7xl text-slate-400">{{ version }}</span>
+    <div v-if="reference" class="absolute top-28 left-88 flex items-baseline gap-6">
+      <span class="text-8xl font-semibold text-white uppercase">{{ reference }}</span>
+      <span class="text-8xl font-semibold text-white">-</span>
+      <span class="text-8xl font-semibold text-white">{{ version }}</span>
     </div>
     <img v-if="showBackground" :src="logo" alt="" class="absolute bottom-10 right-10 w-32 h-32 object-contain opacity-70" />
     <div class="flex flex-col gap-6 max-w-7xl mt-72">
-      <p v-for="v in verses" :key="v.number" :class="verseTextClass" class="leading-relaxed text-center">
+      <p v-for="v in verses" :key="v.number" :class="verseTextClass" class="leading-relaxed text-left">
         <span class="text-slate-400 mr-3">[{{ v.number }}]</span>{{ v.text }}
       </p>
     </div>

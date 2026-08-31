@@ -55,12 +55,14 @@ const MAX_VERSES = 1;
 
 function toggleVerse(v: number) {
   const i = selectedVerses.value.indexOf(v)
-  if (i === -1) {
-    if (selectedVerses.value.length >= MAX_VERSES) return
-    selectedVerses.value.push(v)
-  } else {
+  if (i !== -1) {
     selectedVerses.value.splice(i, 1)
+    return
   }
+  while (selectedVerses.value.length >= MAX_VERSES) {
+    selectedVerses.value.shift()
+  }
+  selectedVerses.value.push(v)
 }
 
 // Agrupa números consecutivos ("16,17,18,20" -> "16-18,20") para la referencia.
@@ -84,24 +86,32 @@ function formatRanges(nums: number[]) {
 
 const isShowingVerse = ref(false)
 
-function show() {
-  const sorted = [...selectedVerses.value].sort((a, b) => a - b)
-  const chosen = sorted
+const chosenVerses = computed(() =>
+  [...selectedVerses.value]
+    .sort((a, b) => a - b)
     .map((v) => verses.value.find((verse) => verse.verse === v))
-    .filter((v): v is Verse => !!v)
-  if (!chosen.length) return
+    .filter((v): v is Verse => !!v),
+)
+const previewReference = computed(
+  () => `${selectedBook.value?.name} ${chapter.value}:${formatRanges([...selectedVerses.value].sort((a, b) => a - b))}`,
+)
+
+watch(chosenVerses, (chosen) => {
+  if (!chosen.length) {
+    window.api.sendVerse(null)
+    isShowingVerse.value = false
+    return
+  }
   window.api.sendVerse({
-    reference: `${selectedBook.value?.name} ${chapter.value}:${formatRanges(sorted)}`,
+    reference: previewReference.value,
     version: translation.value,
     verses: chosen.map((v) => ({ number: v.verse, text: v.text.replace(/<[^>]+>/g, '') })),
   })
   isShowingVerse.value = true
-}
+})
 
 function hide() {
   selectedVerses.value = []
-  window.api.sendVerse(null)
-  isShowingVerse.value = false
 }
 
 function closeApp() {
@@ -124,7 +134,7 @@ watch(backgroundId, syncBackground)
 </script>
 
 <template>
-  <main class="min-h-screen bg-slate-900 text-white p-6 flex flex-col gap-4">
+  <main class="h-screen overflow-y-auto bg-slate-900 text-white p-6 flex flex-col gap-4">
     <div class="flex justify-between items-center">
       <h1 class="text-2xl font-bold">Versículos — Control</h1>
       <div class="flex gap-3">
@@ -141,6 +151,14 @@ watch(backgroundId, syncBackground)
           Fondo: {{ backgroundOn ? 'visible' : 'oculto' }}
         </button>
         <span v-else class="text-sm text-slate-400 self-center">Ocultá el versículo para mostrar/ocultar el fondo</span>
+        <button
+          v-if="selectedVerses.length"
+          type="button"
+          @click="hide"
+          class="bg-slate-700 hover:bg-slate-600 rounded px-4 py-2"
+        >
+          Ocultar
+        </button>
         <button type="button" @click="closeApp" class="bg-red-700 hover:bg-red-600 rounded px-4 py-2">Cerrar</button>
       </div>
     </div>
@@ -180,28 +198,22 @@ watch(backgroundId, syncBackground)
     <p v-if="error" class="text-red-400">{{ error }}</p>
 
     <p v-if="verses.length" class="text-sm text-slate-400">
-      Elegí hasta {{ MAX_VERSES }} versículos para presentarlos juntos.
+      Tocá un versículo para mostrarlo (tocar otro lo reemplaza).
     </p>
 
-    <div class="flex flex-wrap gap-2">
+    <div class="flex flex-col gap-1 flex-1 min-h-0 overflow-y-auto pr-2">
       <button
         v-for="v in verses"
         :key="v.pk"
         type="button"
         @click="toggleVerse(v.verse)"
-        :disabled="!selectedVerses.includes(v.verse) && selectedVerses.length >= MAX_VERSES"
-        class="rounded px-3 py-2 disabled:opacity-30 disabled:cursor-not-allowed"
-        :class="selectedVerses.includes(v.verse) ? 'bg-blue-700' : 'bg-slate-800 hover:bg-slate-700'"
+        class="text-left rounded px-3 py-2"
+        :class="
+          selectedVerses.includes(v.verse) ? 'bg-blue-700 font-bold' : 'bg-slate-800 hover:bg-slate-700'
+        "
       >
-        {{ v.verse }}
+        <span class="text-slate-400 mr-2">{{ v.verse }}</span>{{ v.text.replace(/<[^>]+>/g, '') }}
       </button>
-    </div>
-
-    <div v-if="selectedVerses.length" class="flex gap-3">
-      <button type="button" @click="show" class="bg-blue-600 hover:bg-blue-500 rounded px-4 py-2">
-        Mostrar ({{ selectedVerses.length }})
-      </button>
-      <button type="button" @click="hide" class="bg-slate-700 hover:bg-slate-600 rounded px-4 py-2">Ocultar</button>
     </div>
   </main>
 </template>
