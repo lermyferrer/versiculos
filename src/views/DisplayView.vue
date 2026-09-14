@@ -24,7 +24,7 @@ const backgroundStyle = computed(() =>
 
 const verseTextClass = computed(() => {
   const length = verses.value.reduce((sum, v) => sum + v.text.length, 0)
-  return length > 300 ? 'text-5xl' : 'text-6xl'
+  return length > 300 ? 'text-6xl' : 'text-7xl'
 })
 
 onMounted(() => {
@@ -45,13 +45,13 @@ onMounted(() => {
     class="relative min-h-screen text-white flex flex-col items-center p-16 gap-8 bg-cover bg-center"
     :style="{ background: showBackground ? backgroundStyle : 'transparent' }"
   >
-    <div v-if="reference" class="absolute top-28 left-80 flex items-baseline gap-6">
+    <div v-if="reference" class="absolute top-28 text-center flex items-baseline gap-6">
       <span class="text-8xl font-semibold text-white uppercase">{{ reference }}</span>
       <span class="text-8xl font-semibold text-white">-</span>
       <span class="text-8xl font-semibold text-white">{{ version }}</span>
     </div>
     <img v-if="showBackground" :src="logo" alt="" class="absolute bottom-10 right-10 w-32 h-32 object-contain opacity-70" />
-    <div class="flex flex-col gap-6 max-w-7xl mt-72">
+    <div class="flex flex-col gap-6 max-w-[100rem] mt-72">
       <p v-for="v in verses" :key="v.number" :class="verseTextClass" class="leading-relaxed text-left">
         <span class="text-slate-400 mr-3">[{{ v.number }}]</span>{{ v.text }}
       </p>
