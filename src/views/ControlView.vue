@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
-import { fetchBooks, fetchChapter, TRANSLATIONS, type Book, type Verse } from '../services/bolls'
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { fetchBooks, fetchChapter, searchText, TRANSLATIONS, type Book, type Verse, type SearchResult } from '../services/bolls'
 import { BACKGROUNDS } from '../assets/backgrounds'
 
 const translation = ref(TRANSLATIONS[0].code)
@@ -16,6 +16,7 @@ const filteredBooks = computed(() =>
   books.value.filter((b) => b.name.toLowerCase().includes(search.value.toLowerCase())),
 )
 const selectedBook = computed(() => books.value.find((b) => b.bookid === bookId.value))
+const bookName = (id: number) => books.value.find((b) => b.bookid === id)?.name ?? ''
 
 async function loadBooks() {
   error.value = ''
@@ -50,6 +51,43 @@ watch(chapter, async () => {
     error.value = (e as Error).message
   }
 })
+
+// Búsqueda de texto en toda la Biblia (bolls.life /v2/find), con debounce simple.
+const textSearch = ref('')
+const textSearchResults = ref<SearchResult[]>([])
+const searchingText = ref(false)
+let searchTimer: ReturnType<typeof setTimeout> | undefined
+
+watch(textSearch, (q) => {
+  clearTimeout(searchTimer)
+  if (q.trim().length < 3) {
+    textSearchResults.value = []
+    return
+  }
+  searchTimer = setTimeout(async () => {
+    searchingText.value = true
+    error.value = ''
+    try {
+      textSearchResults.value = await searchText(translation.value, q.trim())
+    } catch (e) {
+      error.value = (e as Error).message
+    } finally {
+      searchingText.value = false
+    }
+  }, 400)
+})
+
+async function selectSearchResult(result: SearchResult) {
+  const chosen = await fetchChapter(translation.value, result.book, result.chapter)
+  textSearch.value = ''
+  textSearchResults.value = []
+  bookId.value = result.book
+  await nextTick()
+  chapter.value = result.chapter
+  await nextTick()
+  verses.value = chosen
+  selectedVerses.value = [result.verse]
+}
 
 const MAX_VERSES = 1;
 
@@ -163,21 +201,49 @@ watch(backgroundId, syncBackground)
       </div>
     </div>
 
+    <label class="flex flex-col gap-1">
+      Buscar por texto (en toda la Biblia)
+      <input
+        v-model="textSearch"
+        type="text"
+        placeholder="Ej. amor, gracia, salvación..."
+        class="bg-slate-800 rounded px-3 py-2 w-full"
+      />
+    </label>
+
+    <div v-if="textSearch.trim().length >= 3" class="flex flex-col gap-1 max-h-64 overflow-y-auto pr-2">
+      <p v-if="searchingText" class="text-sm text-slate-400">Buscando...</p>
+      <p v-else-if="!textSearchResults.length" class="text-sm text-slate-400">Sin resultados.</p>
+      <button
+        v-for="r in textSearchResults.slice(0, 200)"
+        :key="r.pk"
+        type="button"
+        @click="selectSearchResult(r)"
+        class="text-left rounded px-3 py-2 bg-slate-800 hover:bg-slate-700"
+      >
+        <span class="text-slate-400 mr-2">{{ bookName(r.book) }} {{ r.chapter }}:{{ r.verse }}</span
+        >{{ r.text.replace(/<[^>]+>/g, '') }}
+      </button>
+      <p v-if="textSearchResults.length > 200" class="text-xs text-slate-500">
+        Mostrando los primeros 200 de {{ textSearchResults.length }} resultados — afiná la búsqueda.
+      </p>
+    </div>
+
     <div class="flex gap-3 items-end flex-wrap">
-      <label class="flex flex-col gap-1">
-        Versión
-        <select v-model="translation" class="bg-slate-800 rounded px-3 py-2 w-48">
-          <option v-for="t in TRANSLATIONS" :key="t.code" :value="t.code">{{ t.label }}</option>
-        </select>
-      </label>
       <label class="flex flex-col gap-1">
         Buscar libro
         <input
           v-model="search"
           type="text"
           placeholder="Ej. Juan"
-          class="bg-slate-800 rounded px-3 py-2 w-48"
+          class="bg-slate-800 rounded px-3 py-2 w-64"
         />
+      </label>
+      <label class="flex flex-col gap-1">
+        Versión
+        <select v-model="translation" class="bg-slate-800 rounded px-3 py-2 w-48">
+          <option v-for="t in TRANSLATIONS" :key="t.code" :value="t.code">{{ t.label }}</option>
+        </select>
       </label>
       <label class="flex flex-col gap-1">
         Libro

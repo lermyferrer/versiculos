@@ -39,3 +39,19 @@ export async function fetchChapter(
   if (!res.ok) throw new Error('No se pudo cargar el capítulo')
   return res.json()
 }
+
+export interface SearchResult {
+  pk: number
+  book: number
+  chapter: number
+  verse: number
+  text: string
+}
+
+// Búsqueda de texto en toda la Biblia (no solo el capítulo/libro elegido).
+export async function searchText(translation: TranslationCode, query: string): Promise<SearchResult[]> {
+  const res = await fetch(`${BASE}/v2/find/${translation}?search=${encodeURIComponent(query)}`)
+  if (!res.ok) throw new Error('No se pudo buscar')
+  const data = await res.json()
+  return data.results
+}
