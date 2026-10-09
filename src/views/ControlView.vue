@@ -29,9 +29,17 @@ async function loadBooks() {
 
 onMounted(loadBooks)
 
-watch(translation, () => {
-  bookId.value = undefined
-  loadBooks()
+// Cambiar de versión no debe borrar lo que se está transmitiendo: recarga los
+// libros y, si hay capítulo elegido, su texto en la nueva versión in situ.
+watch(translation, async () => {
+  await loadBooks()
+  if (!bookId.value || !chapter.value) return
+  error.value = ''
+  try {
+    verses.value = await fetchChapter(translation.value, bookId.value, chapter.value)
+  } catch (e) {
+    error.value = (e as Error).message
+  }
 })
 
 watch(bookId, () => {

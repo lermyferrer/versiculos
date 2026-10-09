@@ -1,13 +1,24 @@
-const { app, BrowserWindow, ipcMain, screen } = require('electron')
+const { app, BrowserWindow, ipcMain, screen, Menu } = require('electron')
 const path = require('node:path')
 
 const isDev = !app.isPackaged
 const devUrl = 'http://localhost:5173'
 
+// Sin menú propio, Electron pone uno por defecto (File/Edit/View...) con
+// Zoom In/Out/Reset atado a Ctrl +/-/0. Lo sacamos: el tamaño del texto lo
+// controla solo la app, no accidentes de zoom del usuario.
+Menu.setApplicationMenu(null)
+
 let controlWindow
 let displayWindow
 
 function loadView(win, view) {
+  // Bloquea el zoom en 100%: ni Ctrl +/-, ni Ctrl+rueda, ni un zoom persistido
+  // de una sesión anterior deben afectar el tamaño del texto.
+  win.webContents.on('did-finish-load', () => {
+    win.webContents.setZoomFactor(1)
+    win.webContents.setVisualZoomLevelLimits(1, 1)
+  })
   if (isDev) {
     win.loadURL(`${devUrl}?view=${view}`)
   } else {

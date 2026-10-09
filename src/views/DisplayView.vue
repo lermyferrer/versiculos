@@ -24,9 +24,9 @@ const backgroundStyle = computed(() =>
 
 const verseTextClass = computed(() => {
   const length = verses.value.reduce((sum, v) => sum + v.text.length, 0)
-  if (length > 300) return 'text-7xl'
-  if (length < 80) return 'text-8xl'
-  return 'text-8xl'
+  if (length > 300) return 'text-6xl'
+  if (length < 80) return 'text-7xl'
+  return 'text-7xl'
 })
 
 onMounted(() => {
@@ -48,13 +48,13 @@ onMounted(() => {
     :style="{ background: showBackground ? backgroundStyle : 'transparent' }"
   >
     <div v-if="reference" class="absolute top-42 text-center flex items-baseline gap-6">
-      <span class="text-9xl font-semibold text-white uppercase">{{ reference }}</span>
-      <span class="text-9xl font-semibold text-white">-</span>
-      <span class="text-9xl font-semibold text-white">{{ version }}</span>
+      <span class="text-8xl font-semibold text-white uppercase">{{ reference }}</span>
+      <span class="text-8xl font-semibold text-white">-</span>
+      <span class="text-8xl font-semibold text-white">{{ version }}</span>
     </div>
-    <img v-if="showBackground" :src="logo" alt="" class="absolute bottom-10 right-10 w-40 h-40 object-contain opacity-50" />
-    <div class="flex flex-col gap-6 w-full max-w-[125rem] mt-90">
-      <p v-for="v in verses" :key="v.number" :class="verseTextClass" class="leading-tight text-left">
+    <img v-if="showBackground" :src="logo" alt="" class="absolute bottom-10 right-10 w-40 h-40 object-contain opacity-35" />
+    <div class="flex flex-col gap-6 w-full max-w-[125rem] mt-70">
+      <p v-for="v in verses" :key="v.number" :class="verseTextClass" class="leading-tight text-left font-light">
         <span class="text-slate-400 mr-3">[{{ v.number }}]</span>{{ v.text }}
       </p>
     </div>
