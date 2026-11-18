@@ -5,16 +5,12 @@ import { BACKGROUNDS } from '../assets/backgrounds'
 
 const translation = ref(TRANSLATIONS[0].code)
 const books = ref<Book[]>([])
-const search = ref('')
 const bookId = ref<number>()
 const chapter = ref<number>()
 const verses = ref<Verse[]>([])
 const selectedVerses = ref<number[]>([])
 const error = ref('')
 
-const filteredBooks = computed(() =>
-  books.value.filter((b) => b.name.toLowerCase().includes(search.value.toLowerCase())),
-)
 const selectedBook = computed(() => books.value.find((b) => b.bookid === bookId.value))
 const bookName = (id: number) => books.value.find((b) => b.bookid === id)?.name ?? ''
 
@@ -148,6 +144,12 @@ watch(chosenVerses, (chosen) => {
     isShowingVerse.value = false
     return
   }
+  // Mostrar un versículo estando en el fondo especial vuelve al gradiente por defecto.
+  if (hombreIntegralOn.value) {
+    hombreIntegralOn.value = false
+    backgroundId.value = BACKGROUNDS[0].id
+    syncBackground()
+  }
   window.api.sendVerse({
     reference: previewReference.value,
     version: translation.value,
@@ -164,15 +166,21 @@ function closeApp() {
   window.api.closeApp()
 }
 
-const backgroundOn = ref(true)
+const selectableBackgrounds = computed(() => BACKGROUNDS.filter((b) => b.id !== 'hombre-integral'))
 const backgroundId = ref(BACKGROUNDS[0].id)
+const hombreIntegralOn = ref(false)
+const effectiveBackgroundId = computed(() => (hombreIntegralOn.value ? 'hombre-integral' : backgroundId.value))
 
 function syncBackground() {
-  window.api.setBackground({ visible: backgroundOn.value, backgroundId: backgroundId.value })
+  window.api.setBackground({ visible: true, backgroundId: effectiveBackgroundId.value })
 }
 
-function toggleBackground() {
-  backgroundOn.value = !backgroundOn.value
+function toggleHombreIntegral() {
+  hombreIntegralOn.value = !hombreIntegralOn.value
+  // Activar el fondo especial mata el versículo que esté en pantalla.
+  if (hombreIntegralOn.value) {
+    selectedVerses.value = []
+  }
   syncBackground()
 }
 
@@ -183,29 +191,34 @@ watch(backgroundId, syncBackground)
   <main class="h-screen overflow-y-auto bg-slate-900 text-white p-6 flex flex-col gap-4">
     <div class="flex justify-between items-center">
       <h1 class="text-2xl font-bold">Versículos — Control</h1>
-      <div class="flex gap-3">
-        <select v-model="backgroundId" class="bg-slate-800 rounded px-3 py-2">
-          <option v-for="b in BACKGROUNDS" :key="b.id" :value="b.id">{{ b.label }}</option>
-        </select>
-        <button
-          v-if="!isShowingVerse"
-          type="button"
-          @click="toggleBackground"
-          class="rounded px-4 py-2"
-          :class="backgroundOn ? 'bg-blue-700 hover:bg-blue-600' : 'bg-slate-700 hover:bg-slate-600'"
-        >
-          Fondo: {{ backgroundOn ? 'visible' : 'oculto' }}
-        </button>
-        <span v-else class="text-sm text-slate-400 self-center">Ocultá el versículo para mostrar/ocultar el fondo</span>
-        <button
-          v-if="selectedVerses.length"
-          type="button"
-          @click="hide"
-          class="bg-slate-700 hover:bg-slate-600 rounded px-4 py-2"
-        >
-          Ocultar
-        </button>
-        <button type="button" @click="closeApp" class="bg-red-700 hover:bg-red-600 rounded px-4 py-2">Cerrar</button>
+      <div class="flex gap-3 items-end">
+        <div class="flex flex-col gap-1">
+          <span class="text-xs text-slate-400">Fondo</span>
+          <select v-model="backgroundId" class="bg-slate-800 rounded px-3 py-2">
+            <option v-for="b in selectableBackgrounds" :key="b.id" :value="b.id">{{ b.label }}</option>
+          </select>
+        </div>
+        <div class="flex flex-col gap-1">
+          <span class="text-xs text-slate-400">Fondo especial</span>
+          <button
+            type="button"
+            @click="toggleHombreIntegral"
+            class="rounded px-4 py-2"
+            :class="hombreIntegralOn ? 'bg-blue-700 hover:bg-blue-600' : 'bg-slate-700 hover:bg-slate-600'"
+          >
+            Hombre Integral: {{ hombreIntegralOn ? 'ON' : 'OFF' }}
+          </button>
+        </div>
+        <div v-if="selectedVerses.length" class="flex flex-col gap-1">
+          <span class="text-xs text-slate-400">Versículo en pantalla</span>
+          <button type="button" @click="hide" class="bg-slate-700 hover:bg-slate-600 rounded px-4 py-2">
+            Ocultar
+          </button>
+        </div>
+        <div class="flex flex-col gap-1">
+          <span class="text-xs text-slate-400">Aplicación</span>
+          <button type="button" @click="closeApp" class="bg-red-700 hover:bg-red-600 rounded px-4 py-2">Cerrar</button>
+        </div>
       </div>
     </div>
 
@@ -239,15 +252,6 @@ watch(backgroundId, syncBackground)
 
     <div class="flex gap-3 items-end flex-wrap">
       <label class="flex flex-col gap-1">
-        Buscar libro
-        <input
-          v-model="search"
-          type="text"
-          placeholder="Ej. Juan"
-          class="bg-slate-800 rounded px-3 py-2 w-64"
-        />
-      </label>
-      <label class="flex flex-col gap-1">
         Versión
         <select v-model="translation" class="bg-slate-800 rounded px-3 py-2 w-48">
           <option v-for="t in TRANSLATIONS" :key="t.code" :value="t.code">{{ t.label }}</option>
@@ -257,7 +261,7 @@ watch(backgroundId, syncBackground)
         Libro
         <select v-model.number="bookId" class="bg-slate-800 rounded px-3 py-2 w-48">
           <option :value="undefined" disabled>Seleccioná un libro</option>
-          <option v-for="b in filteredBooks" :key="b.bookid" :value="b.bookid">{{ b.name }}</option>
+          <option v-for="b in books" :key="b.bookid" :value="b.bookid">{{ b.name }}</option>
         </select>
       </label>
       <label class="flex flex-col gap-1">
