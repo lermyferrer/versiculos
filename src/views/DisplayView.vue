@@ -52,7 +52,12 @@ onMounted(() => {
       <span class="text-8xl font-semibold text-white">-</span>
       <span class="text-8xl font-semibold text-white">{{ version }}</span>
     </div>
-    <img v-if="showBackground" :src="logo" alt="" class="absolute bottom-10 right-10 w-40 h-40 object-contain opacity-35" />
+    <img
+      v-if="showBackground && !selectedBackground.hideLogo"
+      :src="logo"
+      alt=""
+      class="absolute bottom-10 right-10 w-40 h-40 object-contain opacity-35"
+    />
     <div class="flex flex-col gap-6 w-full max-w-[125rem] mt-70">
       <p v-for="v in verses" :key="v.number" :class="verseTextClass" class="leading-tight text-left font-light">
         <span class="text-slate-400 mr-3">[{{ v.number }}]</span>{{ v.text }}
