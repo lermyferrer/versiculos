@@ -44,15 +44,20 @@ watch(bookId, () => {
   selectedVerses.value = []
 })
 
+const loadingVerses = ref(false)
+
 watch(chapter, async () => {
   selectedVerses.value = []
   verses.value = []
   if (!bookId.value || !chapter.value) return
   error.value = ''
+  loadingVerses.value = true
   try {
     verses.value = await fetchChapter(translation.value, bookId.value, chapter.value)
   } catch (e) {
     error.value = (e as Error).message
+  } finally {
+    loadingVerses.value = false
   }
 })
 
@@ -275,7 +280,8 @@ watch(backgroundId, syncBackground)
 
     <p v-if="error" class="text-red-400">{{ error }}</p>
 
-    <p v-if="verses.length" class="text-sm text-slate-400">
+    <p v-if="loadingVerses" class="text-sm text-slate-400">Cargando versículos...</p>
+    <p v-else-if="verses.length" class="text-sm text-slate-400">
       Tocá un versículo para mostrarlo (tocar otro lo reemplaza).
     </p>
 

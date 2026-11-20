@@ -24,10 +24,19 @@ export interface Verse {
   text: string
 }
 
+// Cache en memoria: evita repetir el viaje de red a bolls.life cuando se vuelve
+// a pedir el mismo libro/capítulo (muy común yendo y viniendo entre versículos).
+const booksCache = new Map<TranslationCode, Book[]>()
+const chapterCache = new Map<string, Verse[]>()
+
 export async function fetchBooks(translation: TranslationCode): Promise<Book[]> {
+  const cached = booksCache.get(translation)
+  if (cached) return cached
   const res = await fetch(`${BASE}/get-books/${translation}/`)
   if (!res.ok) throw new Error('No se pudo cargar la lista de libros')
-  return res.json()
+  const books = await res.json()
+  booksCache.set(translation, books)
+  return books
 }
 
 export async function fetchChapter(
@@ -35,9 +44,14 @@ export async function fetchChapter(
   bookId: number,
   chapter: number,
 ): Promise<Verse[]> {
+  const key = `${translation}-${bookId}-${chapter}`
+  const cached = chapterCache.get(key)
+  if (cached) return cached
   const res = await fetch(`${BASE}/get-text/${translation}/${bookId}/${chapter}/`)
   if (!res.ok) throw new Error('No se pudo cargar el capítulo')
-  return res.json()
+  const verses = await res.json()
+  chapterCache.set(key, verses)
+  return verses
 }
 
 export interface SearchResult {
