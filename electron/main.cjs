@@ -4,6 +4,14 @@ const path = require('node:path')
 const isDev = !app.isPackaged
 const devUrl = 'http://localhost:5173'
 
+// La PC de la congregación tiene la escala de Windows (Configuración > Pantalla)
+// en más de 100%. Electron por defecto respeta esa escala, y como el layout está
+// armado en píxeles fijos, todo se ve "con zoom" (texto más grande, versículo
+// recortado) ahí aunque en el portátil de desarrollo (100%) se vea normal. Esto
+// fuerza 1 píxel físico = 1 píxel lógico sin importar la escala de Windows.
+app.commandLine.appendSwitch('high-dpi-support', '1')
+app.commandLine.appendSwitch('force-device-scale-factor', '1')
+
 // Sin menú propio, Electron pone uno por defecto (File/Edit/View...) con
 // Zoom In/Out/Reset atado a Ctrl +/-/0. Lo sacamos: el tamaño del texto lo
 // controla solo la app, no accidentes de zoom del usuario.
