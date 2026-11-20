@@ -253,13 +253,13 @@ watch(backgroundId, syncBackground)
     <div class="flex gap-3 items-end flex-wrap">
       <label class="flex flex-col gap-1">
         Versión
-        <select v-model="translation" class="bg-slate-800 rounded px-3 py-2 w-48">
+        <select v-model="translation" class="bg-slate-800 rounded px-3 py-2 w-64">
           <option v-for="t in TRANSLATIONS" :key="t.code" :value="t.code">{{ t.label }}</option>
         </select>
       </label>
       <label class="flex flex-col gap-1">
         Libro
-        <select v-model.number="bookId" class="bg-slate-800 rounded px-3 py-2 w-48">
+        <select v-model.number="bookId" class="bg-slate-800 rounded px-3 py-2 w-64">
           <option :value="undefined" disabled>Seleccioná un libro</option>
           <option v-for="b in books" :key="b.bookid" :value="b.bookid">{{ b.name }}</option>
         </select>
