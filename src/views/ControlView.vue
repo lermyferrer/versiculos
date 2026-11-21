@@ -6,6 +6,7 @@ import { BACKGROUNDS } from '../assets/backgrounds'
 const translation = ref(TRANSLATIONS[0].code)
 const books = ref<Book[]>([])
 const bookId = ref<number>()
+const bookSearch = ref('')
 const chapter = ref<number>()
 const verses = ref<Verse[]>([])
 const selectedVerses = ref<number[]>([])
@@ -13,6 +14,27 @@ const error = ref('')
 
 const selectedBook = computed(() => books.value.find((b) => b.bookid === bookId.value))
 const bookName = (id: number) => books.value.find((b) => b.bookid === id)?.name ?? ''
+
+// El input de "Libro" es de texto libre con una lista de sugerencias propia (no
+// <datalist> nativo: el navegador no deja cambiarle la fuente ni el fondo blanco).
+const showBookSuggestions = ref(false)
+const bookSuggestions = computed(() => {
+  const q = bookSearch.value.trim().toLowerCase()
+  if (!q) return []
+  return books.value.filter((b) => b.name.toLowerCase().includes(q)).slice(0, 8)
+})
+
+function pickBook(b: Book) {
+  bookId.value = b.bookid
+  bookSearch.value = b.name
+  showBookSuggestions.value = false
+}
+
+function hideBookSuggestionsSoon() {
+  setTimeout(() => {
+    showBookSuggestions.value = false
+  }, 150)
+}
 
 async function loadBooks() {
   error.value = ''
@@ -90,6 +112,7 @@ async function selectSearchResult(result: SearchResult) {
   const chosen = await fetchChapter(translation.value, result.book, result.chapter)
   textSearch.value = ''
   textSearchResults.value = []
+  bookSearch.value = bookName(result.book)
   bookId.value = result.book
   await nextTick()
   chapter.value = result.chapter
@@ -101,11 +124,8 @@ async function selectSearchResult(result: SearchResult) {
 const MAX_VERSES = 1;
 
 function toggleVerse(v: number) {
-  const i = selectedVerses.value.indexOf(v)
-  if (i !== -1) {
-    selectedVerses.value.splice(i, 1)
-    return
-  }
+  // Tocar el versículo que ya está en pantalla no debe quitarlo — para eso está "Ocultar".
+  if (selectedVerses.value.includes(v)) return
   while (selectedVerses.value.length >= MAX_VERSES) {
     selectedVerses.value.shift()
   }
@@ -195,7 +215,7 @@ watch(backgroundId, syncBackground)
 <template>
   <main class="h-screen overflow-y-auto bg-slate-900 text-white p-6 flex flex-col gap-4">
     <div class="flex justify-between items-center">
-      <h1 class="text-2xl font-bold">Versículos — Control</h1>
+      <h1 class="text-4xl font-bold">Versículos — Control</h1>
       <div class="flex gap-3 items-end">
         <div class="flex flex-col gap-1">
           <span class="text-xs text-slate-400">Fondo</span>
@@ -229,12 +249,23 @@ watch(backgroundId, syncBackground)
 
     <label class="flex flex-col gap-1">
       Buscar por texto (en toda la Biblia)
-      <input
-        v-model="textSearch"
-        type="text"
-        placeholder="Ej. amor, gracia, salvación..."
-        class="bg-slate-800 rounded px-3 py-2 w-full"
-      />
+      <div class="relative">
+        <input
+          v-model="textSearch"
+          type="text"
+          placeholder="Ej. amor, gracia, salvación..."
+          class="bg-slate-800 rounded px-3 py-2 w-full pr-10"
+        />
+        <button
+          v-if="textSearch"
+          type="button"
+          @click="textSearch = ''"
+          class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white px-2"
+          aria-label="Limpiar búsqueda"
+        >
+          ✕
+        </button>
+      </div>
     </label>
 
     <div v-if="textSearch.trim().length >= 3" class="flex flex-col gap-1 max-h-64 overflow-y-auto pr-2">
@@ -262,12 +293,30 @@ watch(backgroundId, syncBackground)
           <option v-for="t in TRANSLATIONS" :key="t.code" :value="t.code">{{ t.label }}</option>
         </select>
       </label>
-      <label class="flex flex-col gap-1">
+      <label class="flex flex-col gap-1 relative">
         Libro
-        <select v-model.number="bookId" class="bg-slate-800 rounded px-3 py-2 w-64">
-          <option :value="undefined" disabled>Seleccioná un libro</option>
-          <option v-for="b in books" :key="b.bookid" :value="b.bookid">{{ b.name }}</option>
-        </select>
+        <input
+          v-model="bookSearch"
+          type="text"
+          placeholder="Escribí para buscar..."
+          class="bg-slate-800 rounded px-3 py-2 w-64"
+          @focus="showBookSuggestions = true"
+          @blur="hideBookSuggestionsSoon"
+        />
+        <ul
+          v-if="showBookSuggestions && bookSuggestions.length"
+          class="absolute top-full left-0 mt-1 w-64 max-h-56 overflow-y-auto bg-slate-800 border border-slate-700 rounded shadow-lg z-10"
+        >
+          <li v-for="b in bookSuggestions" :key="b.bookid">
+            <button
+              type="button"
+              @mousedown.prevent="pickBook(b)"
+              class="w-full text-left px-3 py-2 hover:bg-slate-700"
+            >
+              {{ b.name }}
+            </button>
+          </li>
+        </ul>
       </label>
       <label class="flex flex-col gap-1">
         Capítulo
@@ -280,24 +329,28 @@ watch(backgroundId, syncBackground)
 
     <p v-if="error" class="text-red-400">{{ error }}</p>
 
-    <p v-if="loadingVerses" class="text-sm text-slate-400">Cargando versículos...</p>
-    <p v-else-if="verses.length" class="text-sm text-slate-400">
+    <p v-if="verses.length && !loadingVerses" class="text-sm text-slate-400">
       Tocá un versículo para mostrarlo (tocar otro lo reemplaza).
     </p>
 
     <div class="flex flex-col gap-1 flex-1 min-h-0 overflow-y-auto pr-2">
-      <button
-        v-for="v in verses"
-        :key="v.pk"
-        type="button"
-        @click="toggleVerse(v.verse)"
-        class="text-left rounded px-3 py-2"
-        :class="
-          selectedVerses.includes(v.verse) ? 'bg-blue-700 font-bold' : 'bg-slate-800 hover:bg-slate-700'
-        "
-      >
-        <span class="text-slate-400 mr-2">{{ v.verse }}</span>{{ v.text.replace(/<[^>]+>/g, '') }}
-      </button>
+      <div v-if="loadingVerses" class="flex-1 flex items-center justify-center text-xl text-slate-400">
+        Cargando versículos...
+      </div>
+      <template v-else>
+        <button
+          v-for="v in verses"
+          :key="v.pk"
+          type="button"
+          @click="toggleVerse(v.verse)"
+          class="text-left rounded px-3 py-2"
+          :class="
+            selectedVerses.includes(v.verse) ? 'bg-blue-700 font-bold' : 'bg-slate-800 hover:bg-slate-700'
+          "
+        >
+          <span class="text-slate-400 mr-2">{{ v.verse }}</span>{{ v.text.replace(/<[^>]+>/g, '') }}
+        </button>
+      </template>
     </div>
   </main>
 </template>
